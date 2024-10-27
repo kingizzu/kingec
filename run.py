@@ -31,6 +31,8 @@ def initialize_pop(TARGET):
           temp.append(random.choice(GENES))
       population.append(temp)
 
+  result = main(POP_SIZE, MUT_RATE, TARGET, GENES)
+
   return population
 
 #fitness calculation
