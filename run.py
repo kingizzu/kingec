@@ -12,8 +12,9 @@ POP_SIZE = 500
 GENES = ' abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 # User inputs for target string and mutation rate
-TARGET = st.text_input("Enter your name", "Raja")
+
 MUT_RATE = st.number_input("Enter your mutation rate", min_value=0.0, max_value=1.0, value=0.1, step=0.01)
+TARGET = st.text_input("Enter your name", "Raja")
 
 def initialize_pop(TARGET):
     population = []
