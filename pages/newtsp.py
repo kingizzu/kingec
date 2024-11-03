@@ -1,3 +1,13 @@
+import matplotlib.pyplot as plt
+from itertools import permutations, combinations
+from random import shuffle
+import random
+import numpy as np
+import statistics
+import pandas as pd
+import seaborn as sns
+import streamlit as st
+
 # New Coordinates for ASEAN countries
 x = [5, 11, 18, 14, 8, 10, 22, 9, 15, 17]  # Replace with actual x-coordinates if available
 y = [10, 7, 15, 12, 6, 8, 20, 5, 13, 9]    # Replace with actual y-coordinates if available
