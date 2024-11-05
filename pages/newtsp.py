@@ -262,17 +262,7 @@ def run_ga(cities_names, n_population, n_generations, crossover_per, mutation_pe
 #shortest path
 # shortest_path = offspring_list[index_minimum]
 
-st.write(shortest_path)
 
-x_shortest = []
-y_shortest = []
-for city in shortest_path:
-    x_value, y_value = city_coords[city]
-    x_shortest.append(x_value)
-    y_shortest.append(y_value)
-
-x_shortest.append(x_shortest[0])
-y_shortest.append(y_shortest[0])
 # Find best route and plot the shortest path
 best_mixed_offspring = run_ga(cities_names, n_population, n_generations, crossover_per, mutation_per)
 shortest_path = min(best_mixed_offspring, key=total_dist_individual)
