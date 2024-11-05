@@ -49,8 +49,8 @@ for i, (city, (city_x, city_y)) in enumerate(city_coords.items()):
     color = colors[i]
     icon = city_icons[city]
     ax.scatter(city_x, city_y, c=[color], s=1200, zorder=2)
-    ax.annotate(icon, (city_x, city_y), fontsize=40, ha='center', va='center', zorder=1)
-    ax.annotate(city, (city_x, city_y), fontsize=12, ha='center', va='bottom', xytext=(0, -30), textcoords='offset points')
+    ax.annotate(icon, (city_x, city_y), fontsize=40, ha='center', va='center', zorder=3)
+    ax.annotate(city, (city_x, city_y), fontsize=12, ha='center', va='bottom', xytext=(0, -10), textcoords='offset points')
 
     for j, (other_city, (other_x, other_y)) in enumerate(city_coords.items()):
         if i != j:
