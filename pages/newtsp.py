@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
-from itertools import permutations, combinations
-from random import shuffle
+from itertools import permutations
 import random
 import numpy as np
 import seaborn as sns
@@ -50,11 +49,7 @@ for i, (city, (city_x, city_y)) in enumerate(city_coords.items()):
     icon = city_icons[city]
     ax.scatter(city_x, city_y, c=[color], s=1200, zorder=2)
     ax.annotate(icon, (city_x, city_y), fontsize=40, ha='center', va='center', zorder=3)
-    ax.annotate(city, (city_x, city_y), fontsize=12, ha='center', va='bottom', xytext=(0, -10), textcoords='offset points')
-
-    for j, (other_city, (other_x, other_y)) in enumerate(city_coords.items()):
-        if i != j:
-            ax.plot([city_x, other_x], [city_y, other_y], color='gray', linestyle='-', linewidth=1, alpha=0.1)
+    ax.annotate(city, (city_x, city_y), fontsize=12, ha='center', va='bottom', xytext=(0, -30), textcoords='offset points')
 
 fig.set_size_inches(16, 12)
 st.pyplot(fig)
@@ -130,6 +125,11 @@ def run_ga(cities_names, n_population, n_generations, crossover_per, mutation_pe
 
 best_mixed_offspring = run_ga(cities_names, n_population, n_generations, crossover_per, mutation_per)
 shortest_path = min(best_mixed_offspring, key=total_dist_individual)
+total_distance = total_dist_individual(shortest_path)
+
+# Display shortest path and distance
+st.write(f"Shortest Path: {' -> '.join(shortest_path)}")
+st.write(f"Total Distance: {total_distance:.2f}")
 
 # Plot shortest path
 x_shortest = [city_coords[city][0] for city in shortest_path] + [city_coords[shortest_path[0]][0]]
@@ -142,6 +142,6 @@ plt.legend()
 for i, txt in enumerate(shortest_path):
     ax.annotate(f"{i+1}- {txt}", (x_shortest[i], y_shortest[i]), fontsize=20)
 
-plt.title(f"TSP Best Route Using GA (Distance: {total_dist_individual(shortest_path):.2f})", fontsize=18)
+plt.title(f"TSP Best Route Using GA (Distance: {total_distance:.2f})", fontsize=18)
 fig.set_size_inches(16, 12)
 st.pyplot(fig)
