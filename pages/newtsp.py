@@ -261,7 +261,7 @@ def run_ga(cities_names, n_population, n_generations, crossover_per, mutation_pe
 
 #shortest path
 # shortest_path = offspring_list[index_minimum]
-shortest_path = best_mixed_offspring[index_minimum]
+
 st.write(shortest_path)
 
 x_shortest = []
