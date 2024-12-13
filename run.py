@@ -137,14 +137,17 @@ if st.button("Run"):
     initial_best_schedule = finding_best_schedule(all_possible_schedules)
 
     rem_t_slots = len(all_time_slots) - len(initial_best_schedule)
-    final_schedule, best_schedules = genetic_algorithm(
+    # Ensure we only take what we can fill in. 
+    genetic_schedule = genetic_algorithm(
         initial_best_schedule,
         generations=GEN,
         population_size=POP,
         crossover_rate=CO_R,
         mutation_rate=MUT_R,
         elitism_size=EL_S
-    )
+    )[0]
+
+    final_schedule = initial_best_schedule + genetic_schedule[:rem_t_slots]
 
     # Prepare data for the table
     schedule_data = {
@@ -154,56 +157,62 @@ if st.button("Run"):
     }
 
     # Fill in the schedule data
-    for time_slot, program in zip(all_time_slots, final_schedule):
-        # Convert 24-hour time to 12-hour time format
-        period = "AM" if time_slot < 12 else "PM"
-        hour = time_slot % 12
-        hour = hour if hour > 0 else 12  # If hour is 0, set it to 12 for midnight
-        time_slot_str = f"{hour} {period}"
-
-        schedule_data["Time Slot"].append(time_slot_str)
-        schedule_data["Program"][time_slot - 6] = program  # Adjust index by the starting time (6:00)
-        schedule_data["Rating"][time_slot - 6] = ratings[program][time_slot - 6]  # Get rating for the time slot
-
-    # Convert to DataFrame
-    schedule_df = pd.DataFrame(schedule_data)
-
-    # Display the schedule as a table in Streamlit
-    st.subheader("TV Ratings based on Mutation and Crossover")
-    st.write(schedule_df)
-
-    # Display total ratings for the final schedule
-    total_ratings = fitness_function(final_schedule)
-    st.write("Total Ratings for the Final Schedule:", total_ratings)
-
-    # Now we display which programs appeared in each time slot
-    detailed_schedule_data = {
-        "Time Slot": [],
-        "Program": [],
-        "Crossover Rate": [],
-        "Mutation Rate": [],
-    }
-
-    # Iterate through best schedules collected from all generations
-    for gen, best_sched in enumerate(best_schedules):
-        for i, program in enumerate(best_sched):
-            # Convert time to 12-hour format
-            period = "AM" if all_time_slots[i] < 12 else "PM"
-            hour = all_time_slots[i] % 12
-            hour = hour if hour > 0 else 12
+    for time_slot_index, time_slot in enumerate(all_time_slots):
+        if time_slot_index < len(final_schedule):
+            program = final_schedule[time_slot_index]
+            # Convert 24-hour time to 12-hour time format
+            period = "AM" if time_slot < 12 else "PM"
+            hour = time_slot % 12
+            hour = hour if hour > 0 else 12  # If hour is 0, set it to 12 for midnight
             time_slot_str = f"{hour} {period}"
 
-            detailed_schedule_data["Time Slot"].append(time_slot_str)
-            detailed_schedule_data["Program"].append(program)
-            detailed_schedule_data["Crossover Rate"].append(CO_R)
-            detailed_schedule_data["Mutation Rate"].append(MUT_R)
+            schedule_data["Time Slot"].append(time_slot_str)
+            schedule_data["Program"][time_slot_index] = program  # Adjust index by the starting time (6:00)
+            schedule_data["Rating"][time_slot_index] = ratings[program][time_slot_index]  # Get rating for the time slot
 
-    # Convert detailed schedule to DataFrame
-    detailed_schedule_df = pd.DataFrame(detailed_schedule_data)
+    # Ensure that the lists are the same length
+    if len(schedule_data["Time Slot"]) != len(schedule_data["Program"]) or len(schedule_data["Program"]) != len(schedule_data["Rating"]):
+        st.error("Error: Inconsistent data lengths in schedule data.")
+    else:
+        # Convert to DataFrame
+        schedule_df = pd.DataFrame(schedule_data)
 
-    # Display detailed schedule data
-    st.subheader("Detailed TV Show Schedule Over Generations")
-    st.write(detailed_schedule_df)
+        # Display the schedule as a table in Streamlit
+        st.subheader("TV Ratings based on Mutation and Crossover")
+        st.write(schedule_df)
 
-    # Display total ratings for the final schedule
-    st.write("Total Ratings for the Best Schedule:", total_ratings)
+        # Display total ratings for the final schedule
+        total_ratings = fitness_function(final_schedule)
+        st.write("Total Ratings for the Final Schedule:", total_ratings)
+
+        # Now we display which programs appeared in each time slot
+        detailed_schedule_data = {
+            "Time Slot": [],
+            "Program": [],
+            "Crossover Rate": [],
+            "Mutation Rate": [],
+        }
+
+        # Iterate through best schedules collected from all generations
+        for gen, best_sched in enumerate(best_schedules):
+            for i, program in enumerate(best_sched):
+                # Convert time to 12-hour format
+                period = "AM" if all_time_slots[i] < 12 else "PM"
+                hour = all_time_slots[i] % 12
+                hour = hour if hour > 0 else 12
+                time_slot_str = f"{hour} {period}"
+
+                detailed_schedule_data["Time Slot"].append(time_slot_str)
+                detailed_schedule_data["Program"].append(program)
+                detailed_schedule_data["Crossover Rate"].append(CO_R)
+                detailed_schedule_data["Mutation Rate"].append(MUT_R)
+
+        # Convert detailed schedule to DataFrame
+        detailed_schedule_df = pd.DataFrame(detailed_schedule_data)
+
+        # Display detailed schedule data
+        st.subheader("Detailed TV Show Schedule Over Generations")
+        st.write(detailed_schedule_df)
+
+        # Display total ratings for the final schedule
+        st.write("Total Ratings for the Best Schedule:", total_ratings)
