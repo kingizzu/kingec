@@ -12,24 +12,29 @@ st.header("TV Ratings by Raja Izzudin", divider="gray")
 # Function to read the CSV file and convert it to the desired format
 def read_csv_to_dict(file_path):
     program_ratings = {}
+
     with open(file_path, mode='r', newline='') as file:
         reader = csv.reader(file)
         # Skip the header
         header = next(reader)
+
         for row in reader:
             program = row[0]
             ratings = [float(x) for x in row[1:]]  # Convert the ratings to floats
             program_ratings[program] = ratings
+
     return program_ratings
 
 # Path to the CSV file
 file_path = 'program_ratings.csv'
+
 # Get the data in the required format
 program_ratings_dict = read_csv_to_dict(file_path)
 
 ##################################### DEFINING PARAMETERS AND DATASET ################################################################
 # Sample rating programs dataset for each time slot.
 ratings = program_ratings_dict
+
 GEN = 100
 POP = 50
 EL_S = 2  # elitism size
@@ -38,26 +43,26 @@ all_programs = list(ratings.keys())  # all programs
 all_time_slots = list(range(6, 24))  # time slots
 
 ######################################### DEFINING FUNCTIONS ########################################################################
-# Defining fitness function
+# defining fitness function
 def fitness_function(schedule):
     total_rating = 0
     for time_slot, program in enumerate(schedule):
         total_rating += ratings[program][time_slot]
     return total_rating
 
-# Initializing the population
+# initializing the population
 def initialize_pop(programs, time_slots):
     if not programs:
         return [[]]
 
     all_schedules = []
     for i in range(len(programs)):
-        for schedule in initialize_pop(programs[:i] + programs[i + 1:], time_slots - 1):
+        for schedule in initialize_pop(programs[:i] + programs[i + 1:], time_slots):
             all_schedules.append([programs[i]] + schedule)
 
     return all_schedules
 
-# Selection
+# selection
 def finding_best_schedule(all_schedules):
     best_schedule = []
     max_ratings = 0
@@ -74,19 +79,19 @@ def finding_best_schedule(all_schedules):
 
 # Crossover
 def crossover(schedule1, schedule2):
-    crossover_point = random.randint(1, len(schedule1) - 1)
+    crossover_point = random.randint(1, len(schedule1) - 2)
     child1 = schedule1[:crossover_point] + schedule2[crossover_point:]
     child2 = schedule2[:crossover_point] + schedule1[crossover_point:]
     return child1, child2
 
-# Mutation
+# mutating
 def mutate(schedule):
     mutation_point = random.randint(0, len(schedule) - 1)
     new_program = random.choice(all_programs)
     schedule[mutation_point] = new_program
     return schedule
 
-# Genetic algorithm with parameters
+# Genetic algorithms with parameters
 def genetic_algorithm(initial_schedule, generations=GEN, population_size=POP, crossover_rate=0.8, mutation_rate=0.2, elitism_size=EL_S):
     population = [initial_schedule]
 
@@ -123,12 +128,12 @@ def genetic_algorithm(initial_schedule, generations=GEN, population_size=POP, cr
 ##################################################### MAIN LOGIC ###################################################################################
 
 # User inputs for crossover and mutation rates
-CO_R = st.number_input("Crossover Rate", min_value=0.0, max_value=0.95, value=0.8, step=0.01)  # Numeric input
-MUT_R = st.number_input("Mutation Rate", min_value=0.01, max_value=0.05, value=0.02, step=0.01)  # Numeric input
+CO_R = st.number_input("Crossover Rate", min_value=0.0, max_value=0.95, value=0.8, step=0.01)  # Allows numeric input
+MUT_R = st.number_input("Mutation Rate", min_value=0.01, max_value=0.05, value=0.02, step=0.01)  # Allows numeric input
 
 # Execute button
 if st.button("Run"):
-    # Brute force to find the best initial schedule
+    # brute force
     all_possible_schedules = initialize_pop(all_programs, len(all_time_slots))
     initial_best_schedule = finding_best_schedule(all_possible_schedules)
 
@@ -146,18 +151,22 @@ if st.button("Run"):
 
     # Prepare data for the table
     schedule_data = {
-        "Time Slot": [f"{time_slot:02d}:00" for time_slot in all_time_slots],
+        "Time Slot": [],
         "Program": [""] * len(all_time_slots),
         "Rating": [""] * len(all_time_slots),
-        "Rating Based on Mutation/Crossover": [""] * len(all_time_slots)  # New column for ratings
     }
 
-    # Fill in the schedule data
+    # Fill the schedule data
     for time_slot, program in zip(all_time_slots, final_schedule):
+        # Convert 24-hour time to 12-hour time format
+        period = "AM" if time_slot < 12 else "PM"
+        hour = time_slot % 12
+        hour = hour if hour > 0 else 12  # If hour is 0, set it to 12 for midnight
+        time_slot_str = f"{hour} {period}"
+        
+        schedule_data["Time Slot"].append(time_slot_str)
         schedule_data["Program"][time_slot - 6] = program  # Adjust index by the starting time (6:00)
         schedule_data["Rating"][time_slot - 6] = ratings[program][time_slot - 6]  # Get rating for the time slot
-        # Calculate mutation and crossover ratings
-        schedule_data["Rating Based on Mutation/Crossover"][time_slot - 6] = ratings[program][time_slot - 6]
 
     # Convert to DataFrame
     schedule_df = pd.DataFrame(schedule_data)
