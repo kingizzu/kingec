@@ -20,10 +20,11 @@ def categorize_market(population, market_type):
             int(0.60 * len(population)),
             int(0.20 * len(population))
         ]
+    groups[-1] = len(population) - sum(groups[:-1])  # Ensure the sum of groups matches the population size
     return groups
 
-def risk_based_update(population, risk_factor, group_indices):
-    for i in group_indices:
+def risk_based_update(population, risk_factor, start_index, end_index):
+    for i in range(start_index, end_index):
         noise = np.random.uniform(-risk_factor, risk_factor, size=population.shape[1])
         population[i] += noise
 
@@ -56,10 +57,12 @@ def optimize(pop_size, dimensions, max_generations, lower_bound, upper_bound, ri
 
         market_type = "balanced" if generation % 2 == 0 else "fluctuating"
         groups = categorize_market(population, market_type)
-        
-        risk_based_update(population[groups[1]:groups[1] + groups[2]], risk_factors[0], range(groups[1], groups[1] + groups[2]))
-        risk_based_update(population[groups[2]:], risk_factors[1], range(groups[2], len(population)))
 
+        # Apply risk-based updates
+        risk_based_update(population, risk_factors[0], groups[0], groups[0] + groups[1])
+        risk_based_update(population, risk_factors[1], groups[0] + groups[1], len(population))
+
+        # Generate next population
         next_population = []
         for i in range(pop_size // 2):
             parent1, parent2 = population[np.random.randint(0, pop_size, 2)]
