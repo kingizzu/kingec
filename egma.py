@@ -1,4 +1,7 @@
-import numpy as np
+import streamlit as st
+import csv
+import random
+import pandas as pd
 
 def fitness_function(solution):
     return sum(x**2 for x in solution)
