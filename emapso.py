@@ -58,7 +58,7 @@ def particle_swarm_optimization(pop_size, dimensions, lower_bound, upper_bound, 
     return global_best_position, global_best_score, history
 
 # Streamlit Interface
-st.title("Particle Swarm Optimization (PSO)")
+st.title("Hybrid Exchange Market using Particle Swarm Optimization (PSO)")
 
 # Parameters
 pop_size = st.number_input("Population Size", min_value=10, value=50)
