@@ -1,7 +1,5 @@
+import numpy as np
 import streamlit as st
-import csv
-import random
-import pandas as pd
 
 def fitness_function(solution):
     return sum(x**2 for x in solution)
@@ -44,6 +42,7 @@ def optimize(pop_size, dimensions, max_generations, lower_bound, upper_bound, ri
     population = initialize_population(pop_size, dimensions, lower_bound, upper_bound)
     best_solution = None
     best_fitness = float('inf')
+    history = []
 
     for generation in range(max_generations):
         fitness_scores = np.array([fitness_function(ind) for ind in population])
@@ -70,21 +69,32 @@ def optimize(pop_size, dimensions, max_generations, lower_bound, upper_bound, ri
 
         population = np.array(next_population)
 
-        if generation % 10 == 0 or generation == max_generations - 1:
-            print(f"Generation {generation}: Best Fitness = {best_fitness}")
+        history.append(best_fitness)
 
-    return best_solution, best_fitness
+        if generation % 10 == 0 or generation == max_generations - 1:
+            st.write(f"Generation {generation}: Best Fitness = {best_fitness}")
+
+    return best_solution, best_fitness, history
+
+# Streamlit Interface
+st.title("Hybrid Optimization Algorithm (EMA + GA)")
 
 # Parameters
-pop_size = 50
-dimensions = 10
-max_generations = 100
-lower_bound = -1
-upper_bound = 1
-risk_factors = [0.1, 0.2]
-mutation_rate = 0.05
+pop_size = st.number_input("Population Size", min_value=10, value=50)
+dimensions = st.number_input("Dimensions", min_value=2, value=10)
+max_generations = st.number_input("Maximum Generations", min_value=10, value=100)
+lower_bound = st.number_input("Lower Bound", value=-1.0)
+upper_bound = st.number_input("Upper Bound", value=1.0)
+risk_factors = [
+    st.number_input("Risk Factor for Group 2", value=0.1),
+    st.number_input("Risk Factor for Group 3", value=0.2)
+]
+mutation_rate = st.number_input("Mutation Rate", min_value=0.01, value=0.05)
 
-# Run Optimization
-best_solution, best_fitness = optimize(pop_size, dimensions, max_generations, lower_bound, upper_bound, risk_factors, mutation_rate)
-st.write("Best Solution:", best_solution)
-st.write("Best Fitness:", best_fitness)
+if st.button("Run Optimization"):
+    best_solution, best_fitness, history = optimize(pop_size, dimensions, max_generations, lower_bound, upper_bound, risk_factors, mutation_rate)
+    st.success(f"Optimization Completed! Best Fitness: {best_fitness}")
+    st.write("Best Solution:", best_solution)
+
+    # Plot convergence
+    st.line_chart(history)
