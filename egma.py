@@ -86,5 +86,5 @@ mutation_rate = 0.05
 
 # Run Optimization
 best_solution, best_fitness = optimize(pop_size, dimensions, max_generations, lower_bound, upper_bound, risk_factors, mutation_rate)
-print("Best Solution:", best_solution)
-print("Best Fitness:", best_fitness)
+st.write("Best Solution:", best_solution)
+st.write("Best Fitness:", best_fitness)
