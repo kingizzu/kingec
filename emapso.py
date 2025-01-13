@@ -1,6 +1,31 @@
 import numpy as np
 import streamlit as st
 
+# Load and preprocess the insurance dataset
+file_path = 'insurance.csv'
+data = pd.read_csv(file_path)
+
+# Encode categorical variables ('sex', 'smoker', 'region')
+label_encoders = {
+    'sex': LabelEncoder(),
+    'smoker': LabelEncoder(),
+    'region': LabelEncoder()
+}
+
+for column in ['sex', 'smoker', 'region']:
+    data[column] = label_encoders[column].fit_transform(data[column])
+
+# Split data into features (X) and target (y)
+X = data.drop('charges', axis=1)
+y = data['charges']
+
+# Standardize the features
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Split data into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+
 def fitness_function(solution):
     return sum(x**2 for x in solution)
 
