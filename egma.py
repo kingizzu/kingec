@@ -1,103 +1,134 @@
 import numpy as np
+import pandas as pd
+import time
 import streamlit as st
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.model_selection import train_test_split
 
-def fitness_function(solution):
-    return sum(x**2 for x in solution)
+# Load and preprocess the insurance dataset
+file_path = 'insurance.csv'
+data = pd.read_csv(file_path)
 
-def initialize_population(pop_size, dimensions, lower_bound, upper_bound):
-    return np.random.uniform(lower_bound, upper_bound, (pop_size, dimensions))
+# Encode categorical variables ('sex', 'smoker', 'region')
+label_encoders = {
+    'sex': LabelEncoder(),
+    'smoker': LabelEncoder(),
+    'region': LabelEncoder()
+}
 
-def categorize_market(population, market_type):
-    if market_type == "balanced":
-        groups = [
-            int(0.25 * len(population)),
-            int(0.50 * len(population)),
-            int(0.25 * len(population))
-        ]
-    elif market_type == "fluctuating":
-        groups = [
-            int(0.20 * len(population)),
-            int(0.60 * len(population)),
-            int(0.20 * len(population))
-        ]
-    groups[-1] = len(population) - sum(groups[:-1])  # Ensure the sum of groups matches the population size
-    return groups
+for column in ['sex', 'smoker', 'region']:
+    data[column] = label_encoders[column].fit_transform(data[column])
 
-def risk_based_update(population, risk_factor, start_index, end_index):
-    for i in range(start_index, end_index):
-        noise = np.random.uniform(-risk_factor, risk_factor, size=population.shape[1])
-        population[i] += noise
+# Split data into features (X) and target (y)
+X = data.drop('charges', axis=1)
+y = data['charges']
 
-def crossover(parent1, parent2):
-    point = np.random.randint(1, len(parent1) - 1)
-    return np.concatenate((parent1[:point], parent2[point:]))
+# Standardize the features
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
 
-def mutate(solution, mutation_rate, lower_bound, upper_bound):
-    for i in range(len(solution)):
-        if np.random.rand() < mutation_rate:
-            solution[i] += np.random.uniform(-mutation_rate, mutation_rate)
-            solution[i] = np.clip(solution[i], lower_bound, upper_bound)
-    return solution
+# Split data into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
 
-def optimize(pop_size, dimensions, max_generations, lower_bound, upper_bound, risk_factors, mutation_rate):
-    population = initialize_population(pop_size, dimensions, lower_bound, upper_bound)
-    best_solution = None
-    best_fitness = float('inf')
+# Define the fitness function for PSO
+def fitness_function(params):
+    # Initialize the linear regression model with parameters from PSO
+    model = LinearRegression()
+    model.coef_ = np.array(params[:-1])  # All except the last parameter for the coefficients
+    model.intercept_ = params[-1]  # The last parameter for the intercept
+
+    # Train the model and make predictions
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+
+    # Calculate the mean squared error (MSE)
+    mse = mean_squared_error(y_test, y_pred)
+    return mse
+
+# Initialize particles for PSO
+def initialize_particles(pop_size, dimensions, lower_bound, upper_bound):
+    particles = np.random.uniform(lower_bound, upper_bound, (pop_size, dimensions))
+    velocities = np.random.uniform(-abs(upper_bound - lower_bound), abs(upper_bound - lower_bound), (pop_size, dimensions))
+    return particles, velocities
+
+# Update velocity
+def update_velocity(velocities, particles, personal_best_positions, global_best_position, inertia, cognitive, social):
+    r1 = np.random.random(size=particles.shape)
+    r2 = np.random.random(size=particles.shape)
+
+    cognitive_component = cognitive * r1 * (personal_best_positions - particles)
+    social_component = social * r2 * (global_best_position - particles)
+    velocities = inertia * velocities + cognitive_component + social_component
+    return velocities
+
+# Update particle positions
+def update_position(particles, velocities, lower_bound, upper_bound):
+    particles += velocities
+    particles = np.clip(particles, lower_bound, upper_bound)
+    return particles
+
+# PSO optimization algorithm
+def particle_swarm_optimization(pop_size, dimensions, lower_bound, upper_bound, max_generations, inertia, cognitive, social):
+    particles, velocities = initialize_particles(pop_size, dimensions, lower_bound, upper_bound)
+    personal_best_positions = particles.copy()
+    personal_best_scores = np.array([fitness_function(p) for p in particles])
+
+    global_best_position = particles[np.argmin(personal_best_scores)]
+    global_best_score = np.min(personal_best_scores)
+
     history = []
+    start_time = time.time()  # Start time for computational efficiency
 
     for generation in range(max_generations):
-        fitness_scores = np.array([fitness_function(ind) for ind in population])
-        sorted_indices = np.argsort(fitness_scores)
-        population = population[sorted_indices]
-        fitness_scores = fitness_scores[sorted_indices]
+        velocities = update_velocity(velocities, particles, personal_best_positions, global_best_position, inertia, cognitive, social)
+        particles = update_position(particles, velocities, lower_bound, upper_bound)
 
-        if fitness_scores[0] < best_fitness:
-            best_fitness = fitness_scores[0]
-            best_solution = population[0]
+        current_scores = np.array([fitness_function(p) for p in particles])
 
-        market_type = "balanced" if generation % 2 == 0 else "fluctuating"
-        groups = categorize_market(population, market_type)
+        # Update personal bests
+        for i in range(pop_size):
+            if current_scores[i] < personal_best_scores[i]:
+                personal_best_scores[i] = current_scores[i]
+                personal_best_positions[i] = particles[i]
 
-        # Apply risk-based updates
-        risk_based_update(population, risk_factors[0], groups[0], groups[0] + groups[1])
-        risk_based_update(population, risk_factors[1], groups[0] + groups[1], len(population))
+        # Update global best
+        if np.min(current_scores) < global_best_score:
+            global_best_score = np.min(current_scores)
+            global_best_position = particles[np.argmin(current_scores)]
 
-        # Generate next population
-        next_population = []
-        for i in range(pop_size // 2):
-            parent1, parent2 = population[np.random.randint(0, pop_size, 2)]
-            offspring = crossover(parent1, parent2)
-            offspring = mutate(offspring, mutation_rate, lower_bound, upper_bound)
-            next_population.append(offspring)
-
-        population = np.array(next_population)
-
-        history.append(best_fitness)
+        history.append(global_best_score)
 
         if generation % 10 == 0 or generation == max_generations - 1:
-            st.write(f"Generation {generation}: Best Fitness = {best_fitness}")
+            st.write(f"Generation {generation}: Best Fitness = {global_best_score}")
 
-    return best_solution, best_fitness, history
+    # Calculate the computational time
+    elapsed_time = time.time() - start_time
+    return global_best_position, global_best_score, history, elapsed_time
 
 # Streamlit Interface
-st.title("Hybrid Optimization Algorithm (EMA + GA)")
+st.title("Insurance Charges Prediction with Particle Swarm Optimization (PSO)")
 
 # Parameters
 pop_size = st.number_input("Population Size", min_value=10, value=50)
-dimensions = st.number_input("Dimensions", min_value=2, value=10)
+dimensions = st.number_input("Dimensions (Number of Features)", min_value=2, value=X_train.shape[1] + 1)  # +1 for the intercept term
 max_generations = st.number_input("Maximum Generations", min_value=10, value=100)
 lower_bound = st.number_input("Lower Bound", value=-1.0)
 upper_bound = st.number_input("Upper Bound", value=1.0)
-risk_factors = [
-    st.number_input("Risk Factor for Group 2", value=0.1),
-    st.number_input("Risk Factor for Group 3", value=0.2)
-]
-mutation_rate = st.number_input("Mutation Rate", min_value=0.01, value=0.05)
+inertia = st.number_input("Inertia Weight", value=0.7)
+cognitive = st.number_input("Cognitive Coefficient", value=1.5)
+social = st.number_input("Social Coefficient", value=1.5)
 
 if st.button("Run Optimization"):
-    best_solution, best_fitness, history = optimize(pop_size, dimensions, max_generations, lower_bound, upper_bound, risk_factors, mutation_rate)
-    st.success(f"Optimization Completed! Best Fitness: {best_fitness}")
-    st.write("Best Solution:", best_solution)
+    best_solution, best_fitness, history, elapsed_time = particle_swarm_optimization(
+        pop_size, dimensions, lower_bound, upper_bound, max_generations, inertia, cognitive, social
+    )
+    st.success(f"Optimization Completed! Best Fitness (MSE): {best_fitness}")
+    st.write("Best Solution (Model Parameters):", best_solution)
 
     # Plot convergence
     st.line_chart(history)
+
+    # Display the computational efficiency (time taken)
+    st.write(f"Computational Efficiency: Time taken = {elapsed_time:.2f} seconds")
