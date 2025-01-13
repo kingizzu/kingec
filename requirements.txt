@@ -1,3 +1,4 @@
 matplotlib 
 seaborn
 pip install scikit-learn
+pip install --upgrade pip
